@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "GhostRider",
+    "slug": "ghost-rider",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": false,
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "GhostRider tracks your location in the background to compare your ride against your ghost.",
+        "NSLocationWhenInUseUsageDescription": "GhostRider needs your location to track your ride.",
+        "UIBackgroundModes": [
+          "location",
+          "audio"
+        ]
+      },
+      "bundleIdentifier": "com.anonymous.ghostrider"
+    },
+    "android": {
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.anonymous.ghostrider",
+      "versionCode": 1,
+      "allowBackup": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "GhostRider tracks your location in the background to compare your ride against your ghost.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      "expo-asset",
+      "expo-audio"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "32a6d955-15f6-4a3b-ae6f-565d95dec9fc"
+      }
+    }
+  }
+}
