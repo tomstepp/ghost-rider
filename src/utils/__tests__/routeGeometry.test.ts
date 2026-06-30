@@ -4,6 +4,8 @@ import {
   nodesToElevationPath,
   svgPointAtDistance,
   nodesToSvgPoints,
+  latLngAtDistance,
+  nodesToRegion,
 } from '../routeGeometry';
 import { RouteNode } from '../../types';
 
@@ -75,5 +77,52 @@ describe('svgPointAtDistance', () => {
 
   it('returns null when there are no points', () => {
     expect(svgPointAtDistance([], [], 10)).toBeNull();
+  });
+});
+
+describe('latLngAtDistance', () => {
+  it('interpolates lat/lng midway between two nodes', () => {
+    // node(d).latitude === 40 + d/100000, longitude fixed at -105
+    const nodes = [node(0), node(100), node(200)];
+    const mid = latLngAtDistance(nodes, 50);
+    expect(mid).not.toBeNull();
+    expect(mid!.latitude).toBeCloseTo(40 + 50 / 100000, 10);
+    expect(mid!.longitude).toBeCloseTo(-105, 10);
+  });
+
+  it('clamps to the first node before the start', () => {
+    const nodes = [node(0), node(100)];
+    expect(latLngAtDistance(nodes, -10)).toEqual({ latitude: 40, longitude: -105 });
+  });
+
+  it('clamps to the last node past the end', () => {
+    const nodes = [node(0), node(100)];
+    const end = latLngAtDistance(nodes, 999);
+    expect(end!.latitude).toBeCloseTo(40 + 100 / 100000, 10);
+  });
+
+  it('returns null when there are no nodes', () => {
+    expect(latLngAtDistance([], 10)).toBeNull();
+  });
+});
+
+describe('nodesToRegion', () => {
+  it('centers on the route and applies a margin to the deltas', () => {
+    const nodes = [node(0), node(100), node(200)];
+    const region = nodesToRegion(nodes, 0)!;
+    expect(region.latitude).toBeCloseTo(40 + 100 / 100000, 10);
+    expect(region.longitude).toBeCloseTo(-105, 10);
+    // Below the floor → clamped to the minimum delta.
+    expect(region.latitudeDelta).toBeGreaterThanOrEqual(0.003);
+  });
+
+  it('enforces a minimum delta for a single-point route', () => {
+    const region = nodesToRegion([node(0)])!;
+    expect(region.latitudeDelta).toBe(0.003);
+    expect(region.longitudeDelta).toBe(0.003);
+  });
+
+  it('returns null with no nodes', () => {
+    expect(nodesToRegion([])).toBeNull();
   });
 });

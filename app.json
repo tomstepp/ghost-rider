@@ -40,7 +40,12 @@
       },
       "package": "com.anonymous.ghostrider",
       "versionCode": 1,
-      "allowBackup": true
+      "allowBackup": true,
+      "config": {
+        "googleMaps": {
+          "apiKey": "REPLACE_WITH_ANDROID_MAPS_API_KEY"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

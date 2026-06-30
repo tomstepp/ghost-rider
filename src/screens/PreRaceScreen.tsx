@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import * as Location from 'expo-location';
 import { Route, RouteNode } from '../types';
-import { RouteShape } from '../components/RouteShape';
+import { RouteMap } from '../components/RouteMap';
 import { ElevationProfile } from '../components/ElevationProfile';
 import { announceCountdown } from '../utils/audioService';
 import { calcElevationGain } from '../utils/routeGeometry';
@@ -131,11 +131,11 @@ export function PreRaceScreen({ ghost, ghostNodes, countdownSeconds, units, simu
 
       {hasNodes && (
         <View style={styles.visuals}>
-          <RouteShape
+          <RouteMap
             nodes={ghostNodes}
-            width={mapSize}
             height={mapSize * 0.55}
-            strokeColor="#666"
+            style={{ width: mapSize }}
+            routeColor="#fff"
           />
           <View style={styles.elevationContainer}>
             <ElevationProfile

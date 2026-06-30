@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,7 @@ import * as Sharing from 'expo-sharing';
 import { IRideRepository } from '../storage/IRideRepository';
 import { Units, formatDistance, formatPace, formatElevation } from '../utils/formatting';
 import { RouteShape } from '../components/RouteShape';
+import { RouteMap, RouteMapHandle } from '../components/RouteMap';
 import { ElevationProfile } from '../components/ElevationProfile';
 
 interface EnrichedHistory extends RideHistory {
@@ -68,15 +70,33 @@ export function RideHistoryScreen({ repository, units, onBack }: Props) {
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<EnrichedHistory | null>(null);
   const [entryNodes, setEntryNodes] = useState<RouteNode[] | null>(null);
+  const [shareMapUri, setShareMapUri] = useState<string | null>(null);
+  // Whether the detail map managed to load. While 'pending'/'loaded' we show the
+  // map; if it never loads ('failed') we fall back to the SVG route instead.
+  const [mapStatus, setMapStatus] = useState<'pending' | 'loaded' | 'failed'>('pending');
   const { width } = useWindowDimensions();
   const shareCardRef = useRef<View>(null);
+  const routeMapRef = useRef<RouteMapHandle>(null);
 
   const handleShareEntry = async () => {
+    let bakedMap = false;
     try {
+      // Bake the real map into the card when possible; the SVG route stays as
+      // the always-capturable fallback.
+      if (routeMapRef.current) {
+        const mapUri = await routeMapRef.current.takeSnapshot();
+        if (mapUri) {
+          setShareMapUri(mapUri);
+          bakedMap = true;
+          await new Promise((resolve) => setTimeout(resolve, 80));
+        }
+      }
       const uri = await captureRef(shareCardRef, { format: 'png', quality: 0.95 });
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share ride' });
     } catch (err) {
       console.error('Share failed:', err);
+    } finally {
+      if (bakedMap) setShareMapUri(null);
     }
   };
 
@@ -126,6 +146,20 @@ export function RideHistoryScreen({ repository, units, onBack }: Props) {
     }
     repository.getRouteNodes(selectedEntry.route_id).then(setEntryNodes);
   }, [selectedEntry, repository]);
+
+  // Reset map status for each route and fall back to the SVG if the map hasn't
+  // loaded within a grace period (e.g. in Expo Go, or offline).
+  useEffect(() => {
+    if (!entryNodes || entryNodes.length <= 1) {
+      setMapStatus('failed');
+      return;
+    }
+    setMapStatus('pending');
+    const timer = setTimeout(() => {
+      setMapStatus((s) => (s === 'pending' ? 'failed' : s));
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [entryNodes]);
 
   const vizWidth = width - 48;
 
@@ -198,6 +232,18 @@ export function RideHistoryScreen({ repository, units, onBack }: Props) {
               const distanceM = selectedEntry.avg_speed * (selectedEntry.duration_ms / 1000);
               return (
                 <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
+                  {entryNodes && entryNodes.length > 1 && mapStatus !== 'failed' && (
+                    <View style={styles.modalMapReview}>
+                      <RouteMap
+                        ref={routeMapRef}
+                        nodes={entryNodes}
+                        height={vizWidth * 0.55}
+                        interactive
+                        routeColor="#fff"
+                        onLoaded={() => setMapStatus('loaded')}
+                      />
+                    </View>
+                  )}
                   <View ref={shareCardRef} style={styles.modalShareCard} collapsable={false}>
                     <View style={styles.modalHeader}>
                       <View>
@@ -215,7 +261,17 @@ export function RideHistoryScreen({ repository, units, onBack }: Props) {
 
                     {entryNodes && entryNodes.length > 1 && (
                       <View style={styles.modalVisuals}>
-                        <RouteShape nodes={entryNodes} width={vizWidth} height={vizWidth * 0.5} strokeColor="#555" />
+                        {/* Route visual: baked map for sharing, else the SVG only when
+                            the live map (shown above) couldn't load. */}
+                        {shareMapUri ? (
+                          <Image
+                            source={{ uri: shareMapUri }}
+                            style={[styles.shareMapImage, { width: vizWidth, height: vizWidth * 0.5 }]}
+                            resizeMode="cover"
+                          />
+                        ) : mapStatus === 'failed' ? (
+                          <RouteShape nodes={entryNodes} width={vizWidth} height={vizWidth * 0.5} strokeColor="#555" />
+                        ) : null}
                         <View style={{ marginTop: 8 }}>
                           <ElevationProfile nodes={entryNodes} width={vizWidth} height={56} />
                         </View>
@@ -439,6 +495,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 2,
+  },
+  modalMapReview: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  shareMapImage: {
+    borderRadius: 12,
   },
   modalVisuals: {
     marginBottom: 24,

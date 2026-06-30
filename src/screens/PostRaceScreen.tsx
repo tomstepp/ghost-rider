@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import {
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +14,7 @@ import * as Sharing from 'expo-sharing';
 import { RaceState, RouteNode } from '../types';
 import { Units, formatDistance, formatPace, formatElapsed, formatElevation } from '../utils/formatting';
 import { RouteShape } from '../components/RouteShape';
+import { RouteMap, RouteMapHandle } from '../components/RouteMap';
 import { ElevationProfile } from '../components/ElevationProfile';
 import { calcElevationGain } from '../utils/routeGeometry';
 import * as Haptics from 'expo-haptics';
@@ -35,8 +37,12 @@ function formatDeltaVerbose(timeDelta: number | null): string {
 export function PostRaceScreen({ raceState, rideNodes, units, onSaveAsGhost, onDiscard }: Props) {
   const [ghostName, setGhostName] = useState('');
   const [saving, setSaving] = useState(false);
+  // Map image baked into the share card during capture (native maps can't be
+  // captured by view-shot, so we snapshot the map separately and swap it in).
+  const [shareMapUri, setShareMapUri] = useState<string | null>(null);
   const { width } = useWindowDimensions();
   const shareCardRef = useRef<View>(null);
+  const routeMapRef = useRef<RouteMapHandle>(null);
 
   const canSave = raceState.elapsedMs > 1000 && raceState.distanceMeters > 0.3048;
   const avgSpeedMs = raceState.distanceMeters / (raceState.elapsedMs / 1000) || 0;
@@ -53,11 +59,25 @@ export function PostRaceScreen({ raceState, rideNodes, units, onSaveAsGhost, onD
   };
 
   const handleShare = async () => {
+    let bakedMap = false;
     try {
+      // Bake the real map into the card when possible; otherwise the SVG route
+      // (always capturable) stays as the fallback.
+      if (hasRoute && routeMapRef.current) {
+        const mapUri = await routeMapRef.current.takeSnapshot();
+        if (mapUri) {
+          setShareMapUri(mapUri);
+          bakedMap = true;
+          // Let the swapped-in <Image> commit before capturing the card.
+          await new Promise((resolve) => setTimeout(resolve, 80));
+        }
+      }
       const uri = await captureRef(shareCardRef, { format: 'png', quality: 0.95 });
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share your ride' });
     } catch (err) {
       console.error('Share failed:', err);
+    } finally {
+      if (bakedMap) setShareMapUri(null);
     }
   };
 
@@ -65,11 +85,26 @@ export function PostRaceScreen({ raceState, rideNodes, units, onSaveAsGhost, onD
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>RIDE COMPLETE</Text>
 
-      {/* Shareable card — captured for share screenshot */}
+      {hasRoute && (
+        <View style={styles.mapReview}>
+          <RouteMap ref={routeMapRef} nodes={rideNodes} height={vizWidth * 0.6} interactive routeColor="#fff" />
+        </View>
+      )}
+
+      {/* Shareable card — captured for share screenshot. Keeps the SVG RouteShape
+          because a native MapView renders blank in react-native-view-shot. */}
       <View ref={shareCardRef} style={styles.shareCard} collapsable={false}>
         {hasRoute && (
           <View style={styles.visuals}>
-            <RouteShape nodes={rideNodes} width={vizWidth} height={vizWidth * 0.5} strokeColor="#555" />
+            {shareMapUri ? (
+              <Image
+                source={{ uri: shareMapUri }}
+                style={[styles.shareMapImage, { width: vizWidth, height: vizWidth * 0.5 }]}
+                resizeMode="cover"
+              />
+            ) : (
+              <RouteShape nodes={rideNodes} width={vizWidth} height={vizWidth * 0.5} strokeColor="#555" />
+            )}
             <View style={styles.elevationWrap}>
               <ElevationProfile nodes={rideNodes} width={vizWidth} height={56} />
             </View>
@@ -166,9 +201,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 20,
   },
+  mapReview: {
+    width: '100%',
+    marginBottom: 24,
+  },
   visuals: {
     marginBottom: 24,
     alignItems: 'center',
+  },
+  shareMapImage: {
+    borderRadius: 12,
   },
   elevationWrap: {
     marginTop: 8,

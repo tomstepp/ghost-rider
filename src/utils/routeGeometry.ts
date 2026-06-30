@@ -127,6 +127,75 @@ export function calcElevationGain(nodes: RouteNode[]): number {
   return gain;
 }
 
+export interface LatLng { latitude: number; longitude: number; }
+
+export interface MapRegion extends LatLng {
+  latitudeDelta: number;
+  longitudeDelta: number;
+}
+
+/**
+ * Bounding region (center + deltas) that frames the whole route, with a margin
+ * so the polyline doesn't touch the map edges. Used for a MapView's
+ * initialRegion. Returns null if there aren't enough nodes to frame.
+ */
+export function nodesToRegion(nodes: RouteNode[], marginFactor = 0.25): MapRegion | null {
+  if (nodes.length < 1) return null;
+
+  const lats = nodes.map((n) => n.latitude);
+  const lons = nodes.map((n) => n.longitude);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons);
+  const maxLon = Math.max(...lons);
+
+  // Floor the deltas so a near-stationary or tiny route still gets a sane zoom.
+  const latitudeDelta = Math.max((maxLat - minLat) * (1 + marginFactor), 0.003);
+  const longitudeDelta = Math.max((maxLon - minLon) * (1 + marginFactor), 0.003);
+
+  return {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLon + maxLon) / 2,
+    latitudeDelta,
+    longitudeDelta,
+  };
+}
+
+/**
+ * Interpolate the geographic position along the route at a given distance from
+ * start (meters) — the lat/lng analogue of svgPointAtDistance.
+ */
+export function latLngAtDistance(nodes: RouteNode[], distanceM: number): LatLng | null {
+  if (!nodes.length) return null;
+
+  // Clamp to the endpoints rather than extrapolating off either end.
+  const last = nodes[nodes.length - 1];
+  if (distanceM >= last.distance_from_start) {
+    return { latitude: last.latitude, longitude: last.longitude };
+  }
+
+  // Binary search for the first node at or past distanceM.
+  let lo = 0;
+  let hi = nodes.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (nodes[mid].distance_from_start < distanceM) lo = mid + 1;
+    else hi = mid;
+  }
+  if (lo === 0) {
+    return { latitude: nodes[0].latitude, longitude: nodes[0].longitude };
+  }
+
+  const prev = nodes[lo - 1];
+  const curr = nodes[lo];
+  const segLen = curr.distance_from_start - prev.distance_from_start;
+  const t = segLen > 0 ? (distanceM - prev.distance_from_start) / segLen : 0;
+  return {
+    latitude: prev.latitude + t * (curr.latitude - prev.latitude),
+    longitude: prev.longitude + t * (curr.longitude - prev.longitude),
+  };
+}
+
 /** Thin a node array to at most maxPoints for thumbnail/preview rendering. */
 export function sampleNodes(nodes: RouteNode[], maxPoints: number): RouteNode[] {
   if (nodes.length <= maxPoints) return nodes;
