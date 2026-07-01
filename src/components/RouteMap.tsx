@@ -1,5 +1,13 @@
-import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef } from 'react';
-import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Platform, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import MapView, {
   LatLng,
   Marker,
@@ -38,6 +46,14 @@ export interface RouteMapHandle {
 // points, and at preview zoom the extra detail isn't visible anyway.
 const MAX_POLYLINE_POINTS = 600;
 const EDGE_PADDING = { top: 28, right: 28, bottom: 28, left: 28 };
+
+function EndpointMarker({ color, glyph }: { color: string; glyph: string }) {
+  return (
+    <View style={[styles.badge, { borderColor: color }]}>
+      <Text style={[styles.badgeGlyph, { color }]}>{glyph}</Text>
+    </View>
+  );
+}
 
 function Dot({ color, hollow = false }: { color: string; hollow?: boolean }) {
   return (
@@ -133,6 +149,15 @@ export const RouteMap = forwardRef<RouteMapHandle, Props>(function RouteMap(
     markLoaded();
   }, [markLoaded]);
 
+  // Custom marker views can render blank on Android when tracksViewChanges is
+  // false from the first frame. Track briefly so they rasterize, then stop for
+  // performance (and so the markers don't shimmer).
+  const [tracksChanges, setTracksChanges] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setTracksChanges(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   if (!region || coords.length < 2) return null;
 
   return (
@@ -157,20 +182,22 @@ export const RouteMap = forwardRef<RouteMapHandle, Props>(function RouteMap(
       >
         <Polyline coordinates={coords} strokeColor={routeColor} strokeWidth={4} />
 
-        <Marker coordinate={coords[0]} anchor={CENTER} tracksViewChanges={false}>
-          <Dot color="#4caf50" />
+        {/* Start anchored above its point, finish below — so loops where start
+            and finish coincide still show both badges. */}
+        <Marker coordinate={coords[0]} anchor={ANCHOR_ABOVE} tracksViewChanges={tracksChanges}>
+          <EndpointMarker color="#4caf50" glyph="▶" />
         </Marker>
-        <Marker coordinate={coords[coords.length - 1]} anchor={CENTER} tracksViewChanges={false}>
-          <Dot color="#f44336" />
+        <Marker coordinate={coords[coords.length - 1]} anchor={ANCHOR_BELOW} tracksViewChanges={tracksChanges}>
+          <EndpointMarker color="#f44336" glyph="🏁" />
         </Marker>
 
         {ghost && (
-          <Marker coordinate={ghost} anchor={CENTER} tracksViewChanges={false}>
+          <Marker coordinate={ghost} anchor={CENTER} tracksViewChanges={tracksChanges}>
             <Dot color="#ffffff" hollow />
           </Marker>
         )}
         {rider && (
-          <Marker coordinate={rider} anchor={CENTER} tracksViewChanges={false}>
+          <Marker coordinate={rider} anchor={CENTER} tracksViewChanges={tracksChanges}>
             <Dot color="#ffffff" />
           </Marker>
         )}
@@ -180,6 +207,8 @@ export const RouteMap = forwardRef<RouteMapHandle, Props>(function RouteMap(
 });
 
 const CENTER = { x: 0.5, y: 0.5 };
+const ANCHOR_ABOVE = { x: 0.5, y: 1 }; // pin's bottom sits on the point → badge floats above
+const ANCHOR_BELOW = { x: 0.5, y: 0 }; // pin's top sits on the point → badge hangs below
 
 const styles = StyleSheet.create({
   container: {
@@ -193,5 +222,19 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 2,
+  },
+  badge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderWidth: 1.5,
+  },
+  badgeGlyph: {
+    fontSize: 13,
+    fontWeight: '900',
+    textAlign: 'center',
   },
 });

@@ -357,7 +357,7 @@ export function RouteListScreen({ repository, onSelectRoute, onStartFreeRide, on
                   <ActivityIndicator color="#555" style={styles.shareLoading} />
                 ) : sharingNodes.length > 1 ? (
                   <>
-                    <RouteShape nodes={sharingNodes} width={shareCardWidth} height={shareCardWidth * 0.55} strokeColor="#555" padding={8} />
+                    <RouteShape nodes={sharingNodes} width={shareCardWidth} height={shareCardWidth * 0.55} strokeColor="#555" padding={8} showEndpoints />
                     <View style={styles.shareElevation}>
                       <ElevationProfile nodes={sharingNodes} width={shareCardWidth} height={48} />
                     </View>

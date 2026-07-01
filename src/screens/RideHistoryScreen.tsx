@@ -270,7 +270,7 @@ export function RideHistoryScreen({ repository, units, onBack }: Props) {
                             resizeMode="cover"
                           />
                         ) : mapStatus === 'failed' ? (
-                          <RouteShape nodes={entryNodes} width={vizWidth} height={vizWidth * 0.5} strokeColor="#555" />
+                          <RouteShape nodes={entryNodes} width={vizWidth} height={vizWidth * 0.5} strokeColor="#555" showEndpoints />
                         ) : null}
                         <View style={{ marginTop: 8 }}>
                           <ElevationProfile nodes={entryNodes} width={vizWidth} height={56} />

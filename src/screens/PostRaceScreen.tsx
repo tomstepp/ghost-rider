@@ -103,7 +103,7 @@ export function PostRaceScreen({ raceState, rideNodes, units, onSaveAsGhost, onD
                 resizeMode="cover"
               />
             ) : (
-              <RouteShape nodes={rideNodes} width={vizWidth} height={vizWidth * 0.5} strokeColor="#555" />
+              <RouteShape nodes={rideNodes} width={vizWidth} height={vizWidth * 0.5} strokeColor="#555" showEndpoints />
             )}
             <View style={styles.elevationWrap}>
               <ElevationProfile nodes={rideNodes} width={vizWidth} height={56} />
