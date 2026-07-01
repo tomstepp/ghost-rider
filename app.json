@@ -43,7 +43,7 @@
       "allowBackup": true,
       "config": {
         "googleMaps": {
-          "apiKey": "REPLACE_WITH_ANDROID_MAPS_API_KEY"
+          "apiKey": "AIzaSyClEiNdQlzKatzpW5s9cnAlafvZBDbQUto"
         }
       }
     },
