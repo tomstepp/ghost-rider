@@ -22,7 +22,7 @@
           "audio"
         ]
       },
-      "bundleIdentifier": "com.anonymous.ghostrider"
+      "bundleIdentifier": "com.tomstepp.ghostrider"
     },
     "android": {
       "permissions": [
@@ -38,7 +38,7 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.anonymous.ghostrider",
+      "package": "com.tomstepp.ghostrider",
       "versionCode": 1,
       "allowBackup": true,
       "config": {
