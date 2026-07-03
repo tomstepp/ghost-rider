@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -18,6 +18,7 @@ import { IRideRepository } from '../storage/IRideRepository';
 import { Units, formatDistance, formatPace, formatElevation } from '../utils/formatting';
 import { RouteShape } from '../components/RouteShape';
 import { RouteMap, RouteMapHandle } from '../components/RouteMap';
+import { Theme, useTheme } from '../theme';
 import { ElevationProfile } from '../components/ElevationProfile';
 
 interface EnrichedHistory extends RideHistory {
@@ -61,11 +62,12 @@ const RESULT_LABEL: Record<RaceResult, string> = {
   won: 'WON', lost: 'LOST', tie: 'TIE', ride: 'RIDE',
 };
 
-const RESULT_COLOR: Record<RaceResult, string> = {
-  won: '#4caf50', lost: '#f44336', tie: '#ffc107', ride: '#555',
-};
+const resultColor = (result: RaceResult, t: Theme): string =>
+  ({ won: t.ahead, lost: t.behind, tie: t.warning, ride: t.textMuted } as const)[result];
 
 export function RideHistoryScreen({ repository, units, onBack }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [history, setHistory] = useState<EnrichedHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<EnrichedHistory | null>(null);
@@ -188,7 +190,7 @@ export function RideHistoryScreen({ repository, units, onBack }: Props) {
               <TouchableOpacity style={styles.card} onPress={() => setSelectedEntry(item)} activeOpacity={0.7}>
                 <View style={styles.cardTop}>
                   <Text style={styles.cardDate}>{formatDate(item.completed_at)}</Text>
-                  <Text style={[styles.cardResult, { color: RESULT_COLOR[delta.result] }]}>
+                  <Text style={[styles.cardResult, { color: resultColor(delta.result, theme) }]}>
                     {RESULT_LABEL[delta.result]}
                   </Text>
                 </View>
@@ -239,7 +241,7 @@ export function RideHistoryScreen({ repository, units, onBack }: Props) {
                         nodes={entryNodes}
                         height={vizWidth * 0.55}
                         interactive
-                        routeColor="#fff"
+                        
                         onLoaded={() => setMapStatus('loaded')}
                       />
                     </View>
@@ -253,7 +255,7 @@ export function RideHistoryScreen({ repository, units, onBack }: Props) {
                         )}
                       </View>
                       <View style={styles.modalResultBadge}>
-                        <Text style={[styles.modalResultText, { color: RESULT_COLOR[delta.result] }]}>
+                        <Text style={[styles.modalResultText, { color: resultColor(delta.result, theme) }]}>
                           {RESULT_LABEL[delta.result]}
                         </Text>
                       </View>
@@ -304,7 +306,7 @@ export function RideHistoryScreen({ repository, units, onBack }: Props) {
                       {selectedEntry.route_id != null && (
                         <View style={styles.modalStatRow}>
                           <View style={styles.modalStat}>
-                            <Text style={[styles.modalStatValue, { color: RESULT_COLOR[delta.result] }]}>
+                            <Text style={[styles.modalStatValue, { color: resultColor(delta.result, theme) }]}>
                               {delta.text}
                             </Text>
                             <Text style={styles.modalStatLabel}>FINAL DELTA</Text>
@@ -343,17 +345,17 @@ export function RideHistoryScreen({ repository, units, onBack }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: t.bg,
   },
   header: {
     paddingTop: 64,
     paddingHorizontal: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: t.border,
   },
   backButton: {
     marginBottom: 12,
@@ -361,12 +363,12 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 20,
-    color: '#888',
+    color: t.textMuted,
   },
   title: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#fff',
+    color: t.text,
     letterSpacing: 3,
   },
   list: {
@@ -374,7 +376,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   card: {
-    backgroundColor: '#111',
+    backgroundColor: t.surface,
     borderRadius: 12,
     padding: 16,
   },
@@ -386,7 +388,7 @@ const styles = StyleSheet.create({
   },
   cardDate: {
     fontSize: 13,
-    color: '#555',
+    color: t.textMuted,
   },
   cardResult: {
     fontSize: 11,
@@ -396,7 +398,7 @@ const styles = StyleSheet.create({
   cardGhost: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#aaa',
+    color: t.textSecondary,
     marginBottom: 12,
   },
   cardStats: {
@@ -412,17 +414,17 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: t.text,
   },
   statLabel: {
     fontSize: 10,
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 1.5,
     marginTop: 3,
   },
   tapHint: {
     fontSize: 11,
-    color: '#333',
+    color: t.textFaint,
     marginTop: 12,
     textAlign: 'right',
     letterSpacing: 0.5,
@@ -435,11 +437,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#444',
+    color: t.textSecondary,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#333',
+    color: t.textMuted,
     marginTop: 8,
   },
 
@@ -447,10 +449,10 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: t.overlay,
   },
   modalSheet: {
-    backgroundColor: '#0d0d0d',
+    backgroundColor: t.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
@@ -458,7 +460,7 @@ const styles = StyleSheet.create({
   modalHandle: {
     width: 36,
     height: 4,
-    backgroundColor: '#333',
+    backgroundColor: t.borderStrong,
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 12,
@@ -477,16 +479,16 @@ const styles = StyleSheet.create({
   modalDate: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: t.text,
   },
   modalRoute: {
     fontSize: 13,
-    color: '#666',
+    color: t.textMuted,
     marginTop: 4,
   },
   modalResultBadge: {
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: t.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -520,16 +522,16 @@ const styles = StyleSheet.create({
   modalStatValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: t.text,
   },
   modalStatLabel: {
     fontSize: 10,
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 1.5,
     marginTop: 4,
   },
   modalShareCard: {
-    backgroundColor: '#0d0d0d',
+    backgroundColor: t.surface,
     width: '100%',
     paddingBottom: 20,
     marginBottom: 16,
@@ -537,14 +539,14 @@ const styles = StyleSheet.create({
   modalShareBrand: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#1e1e1e',
+    color: t.textFaint,
     letterSpacing: 3,
     textAlign: 'center',
     marginTop: 16,
   },
   shareButton: {
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: t.border,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -553,12 +555,12 @@ const styles = StyleSheet.create({
   shareButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#666',
+    color: t.textMuted,
     letterSpacing: 2,
   },
   closeButton: {
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: t.border,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -566,7 +568,7 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 2,
   },
   deleteButton: {
@@ -577,7 +579,7 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#f44336',
+    color: t.behind,
     letterSpacing: 2,
   },
 });

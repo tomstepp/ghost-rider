@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -8,17 +8,15 @@ import { RouteShape } from '../components/RouteShape';
 import { ElevationProfile } from '../components/ElevationProfile';
 import { Units, formatDistance, formatSpeed, formatElapsed, formatDelta, formatPace } from '../utils/formatting';
 import { MarkerSettings } from './SettingsScreen';
+import { Theme, useTheme } from '../theme';
 
-const AHEAD_COLOR = '#032b13';
-const BEHIND_COLOR = '#360808';
-const NEUTRAL_COLOR = '#000000';
 const DELTA_THRESHOLD_MS = 1000;
 
-function getDeltaColor(timeDelta: number | null): string {
-  if (timeDelta === null) return NEUTRAL_COLOR;
-  if (timeDelta < -DELTA_THRESHOLD_MS) return AHEAD_COLOR;
-  if (timeDelta > DELTA_THRESHOLD_MS) return BEHIND_COLOR;
-  return NEUTRAL_COLOR;
+function getDeltaColor(timeDelta: number | null, t: Theme): string {
+  if (timeDelta === null) return t.evenBg;
+  if (timeDelta < -DELTA_THRESHOLD_MS) return t.aheadBg;
+  if (timeDelta > DELTA_THRESHOLD_MS) return t.behindBg;
+  return t.evenBg;
 }
 
 interface Props {
@@ -38,8 +36,10 @@ interface Props {
 export function RaceHUDScreen({ raceState, ghostNodes, liveNodes, ghostTotalDistance, units, riderMarker, ghostMarker, simulated = false, onStop, onPause, onResume }: Props) {
   useKeepAwake();
   const { width } = useWindowDimensions();
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const isPaused = raceState.status === 'paused';
-  const bgColor = isPaused ? '#0a0a0a' : getDeltaColor(raceState.timeDelta);
+  const bgColor = isPaused ? theme.surfaceAlt : getDeltaColor(raceState.timeDelta, theme);
   const hasGhost = ghostNodes && ghostNodes.length > 1;
   const [vizMode, setVizMode] = useState<'route' | 'elevation'>('route');
 
@@ -80,7 +80,7 @@ export function RaceHUDScreen({ raceState, ghostNodes, liveNodes, ghostTotalDist
               ghostDistanceM={raceState.ghostDistanceMeters ?? undefined}
               riderMarker={riderMarker}
               ghostMarker={ghostMarker}
-              strokeColor="#333"
+              strokeColor={theme.routeStroke}
               padding={12}
             />
           ) : (
@@ -107,7 +107,7 @@ export function RaceHUDScreen({ raceState, ghostNodes, liveNodes, ghostTotalDist
           height={140}
           riderDistanceM={raceState.distanceMeters}
           riderMarker={riderMarker}
-          strokeColor="#333"
+          strokeColor={theme.routeStroke}
           padding={12}
         />
       ) : (
@@ -169,7 +169,7 @@ export function RaceHUDScreen({ raceState, ghostNodes, liveNodes, ghostTotalDist
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     left: 16,
-    backgroundColor: '#b37800',
+    backgroundColor: t.warning,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
@@ -194,13 +194,13 @@ const styles = StyleSheet.create({
   gpsAlert: {
     position: 'absolute',
     top: 60,
-    backgroundColor: '#ff4444',
+    backgroundColor: t.behind,
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 8,
   },
   gpsAcquiring: {
-    backgroundColor: '#b37800',
+    backgroundColor: t.warning,
   },
   gpsAlertText: {
     color: '#fff',
@@ -211,15 +211,15 @@ const styles = StyleSheet.create({
   pausedBadge: {
     position: 'absolute',
     top: 60,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: t.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#444',
+    borderColor: t.borderStrong,
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 8,
   },
   pausedText: {
-    color: '#888',
+    color: t.textMuted,
     fontWeight: '900',
     fontSize: 14,
     letterSpacing: 3,
@@ -234,15 +234,15 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#333',
+    backgroundColor: t.borderStrong,
   },
   dotActive: {
-    backgroundColor: '#888',
+    backgroundColor: t.textMuted,
   },
   timeDelta: {
     fontSize: 96,
     fontWeight: '900',
-    color: '#ffffff',
+    color: t.text,
     letterSpacing: -2,
     textAlign: 'center',
     marginTop: 8,
@@ -262,12 +262,12 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#ffffff',
+    color: t.text,
   },
   metricLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#888888',
+    color: t.textSecondary,
     letterSpacing: 1.5,
     marginTop: 4,
   },
@@ -281,12 +281,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#555',
+    borderColor: t.borderStrong,
   },
   pauseText: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#aaa',
+    color: t.textSecondary,
     letterSpacing: 2,
   },
   stopButton: {
@@ -294,12 +294,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: t.borderStrong,
   },
   stopText: {
     fontSize: 13,
     fontWeight: '900',
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 2,
   },
 });

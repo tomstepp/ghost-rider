@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 import { IRideRepository } from '../storage/IRideRepository';
 import { parseBackup, serializeBackup } from '../utils/backup';
+import { Appearance, Theme, useTheme } from '../theme';
 
 export interface MarkerSettings {
   type: 'dot' | 'emoji';
@@ -24,6 +25,7 @@ export interface MarkerSettings {
 
 export interface AppSettings {
   units: 'km' | 'mi';
+  appearance: Appearance;
   audioEnabled: boolean;
   splitIntervalKm: number;
   countdownSeconds: number;
@@ -37,6 +39,7 @@ export interface AppSettings {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   units: 'mi',
+  appearance: 'system',
   audioEnabled: true,
   splitIntervalKm: 1,
   countdownSeconds: 3,
@@ -72,6 +75,8 @@ interface MarkerPickerProps {
 }
 
 function MarkerPicker({ label, value, onChange }: MarkerPickerProps) {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const set = (patch: Partial<MarkerSettings>) => onChange({ ...value, ...patch });
 
   return (
@@ -125,6 +130,8 @@ function MarkerPicker({ label, value, onChange }: MarkerPickerProps) {
 }
 
 export function SettingsScreen({ settings, onUpdate, onBack, repository, onDataRestored }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const set = (patch: Partial<AppSettings>) => onUpdate({ ...settings, ...patch });
   const [busy, setBusy] = useState<null | 'backup' | 'restore'>(null);
 
@@ -216,6 +223,22 @@ export function SettingsScreen({ settings, onUpdate, onBack, repository, onDataR
             ))}
           </View>
         </View>
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>Appearance</Text>
+          <View style={styles.segmented}>
+            {(['dark', 'light', 'system'] as const).map((a) => (
+              <TouchableOpacity
+                key={a}
+                style={[styles.segment, settings.appearance === a && styles.segmentActive]}
+                onPress={() => set({ appearance: a })}
+              >
+                <Text style={[styles.segmentText, settings.appearance === a && styles.segmentTextActive]}>
+                  {a === 'system' ? 'AUTO' : a.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -228,7 +251,7 @@ export function SettingsScreen({ settings, onUpdate, onBack, repository, onDataR
           <Switch
             value={settings.audioEnabled}
             onValueChange={(v) => set({ audioEnabled: v })}
-            trackColor={{ false: '#333', true: '#4caf50' }}
+            trackColor={{ false: theme.borderStrong, true: theme.ahead }}
             thumbColor="#fff"
           />
         </View>
@@ -336,7 +359,7 @@ export function SettingsScreen({ settings, onUpdate, onBack, repository, onDataR
           <Switch
             value={settings.simulationEnabled}
             onValueChange={(v) => set({ simulationEnabled: v })}
-            trackColor={{ false: '#333', true: '#b37800' }}
+            trackColor={{ false: theme.borderStrong, true: theme.warning }}
             thumbColor="#fff"
           />
         </View>
@@ -365,10 +388,10 @@ export function SettingsScreen({ settings, onUpdate, onBack, repository, onDataR
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: t.bg,
   },
   content: {
     paddingBottom: 60,
@@ -378,7 +401,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: t.border,
   },
   backButton: {
     marginBottom: 12,
@@ -386,12 +409,12 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 20,
-    color: '#888',
+    color: t.textMuted,
   },
   title: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#fff',
+    color: t.text,
     letterSpacing: 3,
   },
   section: {
@@ -401,7 +424,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 2,
     marginBottom: 16,
   },
@@ -411,11 +434,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: t.border,
   },
   rowLabel: {
     fontSize: 16,
-    color: '#fff',
+    color: t.text,
     fontWeight: '500',
     flex: 1,
     marginRight: 16,
@@ -426,7 +449,7 @@ const styles = StyleSheet.create({
   },
   rowSub: {
     fontSize: 12,
-    color: '#555',
+    color: t.textMuted,
     marginTop: 2,
   },
   segmented: {
@@ -438,19 +461,19 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: t.borderStrong,
   },
   segmentActive: {
-    backgroundColor: '#fff',
-    borderColor: '#fff',
+    backgroundColor: t.accent,
+    borderColor: t.accent,
   },
   segmentText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#555',
+    color: t.textMuted,
   },
   segmentTextActive: {
-    color: '#000',
+    color: t.accentText,
   },
 
   // Data backup / restore
@@ -459,8 +482,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#333',
-    backgroundColor: '#111',
+    borderColor: t.borderStrong,
+    backgroundColor: t.surface,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 50,
@@ -471,21 +494,21 @@ const styles = StyleSheet.create({
   dataButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: t.text,
     letterSpacing: 1,
   },
   dataButtonTextDanger: {
-    color: '#f44336',
+    color: t.behind,
   },
   dataHint: {
     fontSize: 12,
-    color: '#555',
+    color: t.textMuted,
     marginTop: 8,
     lineHeight: 17,
   },
   dataFootnote: {
     marginTop: 18,
-    color: '#444',
+    color: t.textFaint,
   },
 
   // Marker picker
@@ -495,12 +518,12 @@ const styles = StyleSheet.create({
   },
   markerDivider: {
     height: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: t.border,
   },
   markerLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#aaa',
+    color: t.textSecondary,
   },
   swatches: {
     flexDirection: 'row',
@@ -514,7 +537,7 @@ const styles = StyleSheet.create({
   },
   swatchActive: {
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: t.text,
   },
   emojiRow: {
     flexDirection: 'row',
@@ -526,13 +549,13 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#333',
-    backgroundColor: '#111',
+    borderColor: t.borderStrong,
+    backgroundColor: t.surface,
     fontSize: 30,
-    color: '#fff',
+    color: t.text,
   },
   emojiHint: {
     fontSize: 13,
-    color: '#555',
+    color: t.textMuted,
   },
 });

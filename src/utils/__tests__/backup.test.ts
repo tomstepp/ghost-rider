@@ -7,6 +7,7 @@ import { RideHistory } from '../../types';
 
 const settings = {
   units: 'mi' as const,
+  appearance: 'system' as const,
   audioEnabled: true,
   splitIntervalKm: 1,
   countdownSeconds: 3,

@@ -18,6 +18,7 @@ import MapView, {
 import { RouteNode } from '../types';
 import { latLngAtDistance, nodesToRegion, sampleNodes } from '../utils/routeGeometry';
 import { DARK_MAP_STYLE } from './mapStyle';
+import { useTheme } from '../theme';
 
 interface Props {
   nodes: RouteNode[];
@@ -76,7 +77,7 @@ export const RouteMap = forwardRef<RouteMapHandle, Props>(function RouteMap(
     nodes,
     height,
     interactive = false,
-    routeColor = '#ffffff',
+    routeColor,
     riderDistanceM,
     ghostDistanceM,
     style,
@@ -84,6 +85,8 @@ export const RouteMap = forwardRef<RouteMapHandle, Props>(function RouteMap(
   },
   ref,
 ) {
+  const theme = useTheme();
+  const stroke = routeColor ?? theme.text;
   const mapRef = useRef<MapView>(null);
   // Tracks whether the map has finished its first tile load. takeSnapshot()
   // rejects on a not-yet-loaded map (common right after a modal mounts one),
@@ -161,7 +164,7 @@ export const RouteMap = forwardRef<RouteMapHandle, Props>(function RouteMap(
   if (!region || coords.length < 2) return null;
 
   return (
-    <View style={[styles.container, { height }, style]}>
+    <View style={[styles.container, { height, backgroundColor: theme.bg }, style]}>
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
@@ -169,18 +172,18 @@ export const RouteMap = forwardRef<RouteMapHandle, Props>(function RouteMap(
         initialRegion={region}
         onMapReady={handleReady}
         onMapLoaded={handleLoaded}
-        customMapStyle={DARK_MAP_STYLE}
-        userInterfaceStyle="dark"
+        customMapStyle={theme.mapDark ? DARK_MAP_STYLE : []}
+        userInterfaceStyle={theme.mode}
         scrollEnabled={interactive}
         zoomEnabled={interactive}
         rotateEnabled={interactive}
         pitchEnabled={interactive}
         toolbarEnabled={false}
         loadingEnabled
-        loadingBackgroundColor="#000000"
+        loadingBackgroundColor={theme.bg}
         pointerEvents={interactive ? 'auto' : 'none'}
       >
-        <Polyline coordinates={coords} strokeColor={routeColor} strokeWidth={4} />
+        <Polyline coordinates={coords} strokeColor={stroke} strokeWidth={4} />
 
         {/* Start anchored above its point, finish below — so loops where start
             and finish coincide still show both badges. */}

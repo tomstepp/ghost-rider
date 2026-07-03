@@ -7,6 +7,7 @@ import { ElevationProfile } from '../components/ElevationProfile';
 import { announceCountdown } from '../utils/audioService';
 import { calcElevationGain } from '../utils/routeGeometry';
 import { Units, formatDistance, formatElapsed, formatElevation } from '../utils/formatting';
+import { Theme, useTheme } from '../theme';
 
 interface Props {
   ghost: Route | null;
@@ -21,9 +22,14 @@ interface Props {
 export function PreRaceScreen({ ghost, ghostNodes, countdownSeconds, units, simulated = false, onGo, onCancel }: Props) {
   const [gpsReady, setGpsReady] = useState(simulated);
   const [count, setCount] = useState(countdownSeconds);
+  // The countdown no longer auto-runs — it begins only after the rider taps
+  // START, so they can review the route/stats first.
+  const [started, setStarted] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const gpsPulse = useRef(new Animated.Value(1)).current;
   const { width } = useWindowDimensions();
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
 
   const elevationGainM = useMemo(
     () => ghostNodes && ghostNodes.length > 1 ? calcElevationGain(ghostNodes) : 0,
@@ -78,9 +84,9 @@ export function PreRaceScreen({ ghost, ghostNodes, countdownSeconds, units, simu
     return () => loop.stop();
   }, [gpsReady, gpsPulse]);
 
-  // Countdown — only runs once GPS is ready
+  // Countdown — runs only after START is tapped and GPS is ready
   useEffect(() => {
-    if (!gpsReady) return;
+    if (!started || !gpsReady) return;
     announceCountdown(count);
     if (count === 0) {
       onGo();
@@ -92,7 +98,7 @@ export function PreRaceScreen({ ghost, ghostNodes, countdownSeconds, units, simu
     ]).start();
     const timer = setTimeout(() => setCount((c) => c - 1), 1000);
     return () => clearTimeout(timer);
-  }, [count, gpsReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [count, started, gpsReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const hasNodes = ghostNodes && ghostNodes.length > 1;
   const mapSize = width - 48;
@@ -135,7 +141,6 @@ export function PreRaceScreen({ ghost, ghostNodes, countdownSeconds, units, simu
             nodes={ghostNodes}
             height={mapSize * 0.55}
             style={{ width: mapSize }}
-            routeColor="#fff"
           />
           <View style={styles.elevationContainer}>
             <ElevationProfile
@@ -147,48 +152,63 @@ export function PreRaceScreen({ ghost, ghostNodes, countdownSeconds, units, simu
         </View>
       )}
 
-      {gpsReady ? (
-        <Animated.Text style={[styles.countdown, { transform: [{ scale: scaleAnim }] }]}>
-          {count === 0 ? 'GO!' : count}
-        </Animated.Text>
+      {started ? (
+        <>
+          {gpsReady ? (
+            <Animated.Text style={[styles.countdown, { transform: [{ scale: scaleAnim }] }]}>
+              {count === 0 ? 'GO!' : count}
+            </Animated.Text>
+          ) : (
+            <Animated.Text style={[styles.gpsIndicator, { opacity: gpsPulse }]}>●</Animated.Text>
+          )}
+          <Text style={styles.sublabel}>
+            {gpsReady ? `Starting in ${count}s…` : 'Acquiring GPS…'}
+          </Text>
+        </>
       ) : (
-        <Animated.Text style={[styles.gpsIndicator, { opacity: gpsPulse }]}>●</Animated.Text>
+        <Text style={styles.sublabel}>
+          {gpsReady ? 'Ready when you are' : 'Acquiring GPS…'}
+        </Text>
       )}
 
-      <Text style={styles.sublabel}>
-        {gpsReady ? `Starting in ${count}s…` : 'Acquiring GPS…'}
-      </Text>
-
       <View style={styles.bottomButtons}>
-        <TouchableOpacity style={styles.startNowButton} onPress={onGo}>
-          <Text style={styles.startNowText}>START NOW</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.cancelText}>CANCEL</Text>
-        </TouchableOpacity>
+        {started ? (
+          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+            <Text style={styles.cancelText}>CANCEL</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <TouchableOpacity style={styles.startNowButton} onPress={() => setStarted(true)}>
+              <Text style={styles.startNowText}>START</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+              <Text style={styles.cancelText}>CANCEL</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: t.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 3,
     marginBottom: 8,
   },
   ghostName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
+    color: t.text,
     marginBottom: 24,
     textAlign: 'center',
     paddingHorizontal: 32,
@@ -206,18 +226,18 @@ const styles = StyleSheet.create({
   routeStatValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: t.text,
   },
   routeStatLabel: {
     fontSize: 10,
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 1.5,
     marginTop: 3,
   },
   routeStatDivider: {
     width: 1,
     height: 28,
-    backgroundColor: '#222',
+    backgroundColor: t.border,
   },
   visuals: {
     marginBottom: 24,
@@ -229,17 +249,17 @@ const styles = StyleSheet.create({
   countdown: {
     fontSize: 120,
     fontWeight: '900',
-    color: '#fff',
+    color: t.text,
     lineHeight: 130,
   },
   gpsIndicator: {
     fontSize: 80,
-    color: '#555',
+    color: t.textMuted,
     lineHeight: 110,
   },
   sublabel: {
     fontSize: 14,
-    color: '#444',
+    color: t.textFaint,
     marginTop: 16,
     letterSpacing: 1,
   },
@@ -250,7 +270,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   startNowButton: {
-    backgroundColor: '#fff',
+    backgroundColor: t.accent,
     paddingVertical: 14,
     paddingHorizontal: 40,
     borderRadius: 10,
@@ -258,7 +278,7 @@ const styles = StyleSheet.create({
   startNowText: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#000',
+    color: t.accentText,
     letterSpacing: 2,
   },
   cancelButton: {
@@ -268,7 +288,7 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 2,
   },
 });

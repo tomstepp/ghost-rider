@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Linking, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Linking, Modal, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { resolveTheme, Theme, ThemeProvider } from './src/theme';
 import { RaceState, Route, RouteNode } from './src/types';
 import { SqliteRideRepository } from './src/storage/SqliteRideRepository';
 import { RideCheckpoint } from './src/storage/IRideRepository';
@@ -57,6 +58,13 @@ export default function App() {
   const [recoveredSummary, setRecoveredSummary] = useState<RaceState | null>(null);
   const [recoveryPrompt, setRecoveryPrompt] = useState(false);
   const { settings, updateSettings, loaded: settingsLoaded } = usePersistedSettings();
+  const systemScheme = useColorScheme();
+  const theme = useMemo(
+    () => resolveTheme(settings.appearance, systemScheme),
+    [settings.appearance, systemScheme],
+  );
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const statusBarStyle = theme.mode === 'dark' ? 'light' : 'dark';
 
   // In simulation mode the selected ghost's recorded path is replayed as the
   // live GPS feed (see Settings → Developer). Resolved fresh at each race start.
@@ -341,8 +349,10 @@ export default function App() {
   if (!settingsLoaded) {
     return (
       <ErrorBoundary>
-        <StatusBar style="light" />
-        <View style={styles.splash} />
+        <ThemeProvider theme={theme}>
+          <StatusBar style={statusBarStyle} />
+          <View style={styles.splash} />
+        </ThemeProvider>
       </ErrorBoundary>
     );
   }
@@ -350,15 +360,18 @@ export default function App() {
   if (showOnboarding) {
     return (
       <ErrorBoundary>
-        <StatusBar style="light" />
-        <OnboardingScreen onDone={handleOnboardingDone} />
+        <ThemeProvider theme={theme}>
+          <StatusBar style={statusBarStyle} />
+          <OnboardingScreen onDone={handleOnboardingDone} />
+        </ThemeProvider>
       </ErrorBoundary>
     );
   }
 
   return (
     <ErrorBoundary>
-      <StatusBar style="light" />
+      <ThemeProvider theme={theme}>
+      <StatusBar style={statusBarStyle} />
       {screen === 'list' && (
         <RouteListScreen
           repository={repository}
@@ -486,24 +499,25 @@ export default function App() {
           </View>
         </View>
       </Modal>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   splash: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: t.bg,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: t.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
   },
   modalBox: {
-    backgroundColor: '#111',
+    backgroundColor: t.surface,
     borderRadius: 20,
     padding: 32,
     width: '100%',
@@ -516,19 +530,19 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#fff',
+    color: t.text,
     marginBottom: 12,
     letterSpacing: 1,
   },
   modalBody: {
     fontSize: 15,
-    color: '#888',
+    color: t.textMuted,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 28,
   },
   settingsButton: {
-    backgroundColor: '#fff',
+    backgroundColor: t.accent,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 32,
@@ -539,7 +553,7 @@ const styles = StyleSheet.create({
   settingsButtonText: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#000',
+    color: t.accentText,
     letterSpacing: 2,
   },
   cancelButton: {
@@ -547,6 +561,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 15,
-    color: '#555',
+    color: t.textMuted,
   },
 });

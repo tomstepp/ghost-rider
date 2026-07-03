@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,14 +23,17 @@ import { parseGpx } from '../utils/gpxParser';
 import { exportGpx } from '../utils/gpxExporter';
 import { RouteShape } from '../components/RouteShape';
 import { ElevationProfile } from '../components/ElevationProfile';
+import { Theme, useTheme } from '../theme';
 
 function RouteThumbnail({ routeId, repository }: { routeId: number; repository: IRideRepository }) {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [nodes, setNodes] = useState<RouteNode[] | null>(null);
   useEffect(() => {
     repository.getRouteNodes(routeId).then(setNodes);
   }, [routeId, repository]);
   if (!nodes || nodes.length < 2) return <View style={styles.thumbnailPlaceholder} />;
-  return <RouteShape nodes={nodes} width={64} height={48} strokeColor="#444" padding={4} />;
+  return <RouteShape nodes={nodes} width={64} height={48} strokeColor={theme.routeStroke} padding={4} />;
 }
 
 interface Props {
@@ -70,6 +73,8 @@ function formatDuration(ms: number): string {
 }
 
 export function RouteListScreen({ repository, onSelectRoute, onStartFreeRide, onViewHistory, onOpenSettings, onOpenAbout, units }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [routes, setRoutes] = useState<Route[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -357,7 +362,7 @@ export function RouteListScreen({ repository, onSelectRoute, onStartFreeRide, on
                   <ActivityIndicator color="#555" style={styles.shareLoading} />
                 ) : sharingNodes.length > 1 ? (
                   <>
-                    <RouteShape nodes={sharingNodes} width={shareCardWidth} height={shareCardWidth * 0.55} strokeColor="#555" padding={8} showEndpoints />
+                    <RouteShape nodes={sharingNodes} width={shareCardWidth} height={shareCardWidth * 0.55} strokeColor={theme.routeStroke} padding={8} showEndpoints />
                     <View style={styles.shareElevation}>
                       <ElevationProfile nodes={sharingNodes} width={shareCardWidth} height={48} />
                     </View>
@@ -514,10 +519,10 @@ export function RouteListScreen({ repository, onSelectRoute, onStartFreeRide, on
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: t.bg,
     paddingTop: 80,
     paddingHorizontal: 24,
   },
@@ -536,7 +541,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 24,
     fontWeight: '900',
-    color: '#fff',
+    color: t.text,
     letterSpacing: 4,
   },
   hamburger: {
@@ -545,7 +550,7 @@ const styles = StyleSheet.create({
   },
   hamburgerText: {
     fontSize: 22,
-    color: '#888',
+    color: t.textMuted,
   },
   headerButton: {
     paddingVertical: 8,
@@ -553,10 +558,10 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: 17,
-    color: '#888',
+    color: t.textMuted,
   },
   freeRideButton: {
-    backgroundColor: '#fff',
+    backgroundColor: t.accent,
     borderRadius: 12,
     padding: 20,
     marginBottom: 40,
@@ -564,31 +569,32 @@ const styles = StyleSheet.create({
   freeRideText: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#000',
+    color: t.accentText,
     letterSpacing: 2,
   },
   freeRideSubtext: {
     fontSize: 13,
-    color: '#555',
+    color: t.accentText,
+    opacity: 0.6,
     marginTop: 4,
   },
   importButton: {
+    backgroundColor: t.accent,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#222',
     padding: 14,
     marginBottom: 40,
     alignItems: 'center',
   },
   importButtonText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: '900',
+    color: t.accentText,
+    letterSpacing: 1,
   },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 2,
     marginBottom: 12,
   },
@@ -596,7 +602,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: t.border,
     gap: 12,
   },
   thumbnailPlaceholder: {
@@ -610,11 +616,11 @@ const styles = StyleSheet.create({
   routeName: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#fff',
+    color: t.text,
   },
   routeMeta: {
     fontSize: 13,
-    color: '#555',
+    color: t.textMuted,
     marginTop: 3,
   },
   editButton: {
@@ -623,7 +629,7 @@ const styles = StyleSheet.create({
   },
   editButtonText: {
     fontSize: 22,
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 1,
   },
   empty: {
@@ -633,11 +639,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#444',
+    color: t.textSecondary,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#333',
+    color: t.textMuted,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -645,11 +651,11 @@ const styles = StyleSheet.create({
   // Action sheet
   sheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: t.overlay,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#111',
+    backgroundColor: t.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 16,
@@ -659,7 +665,7 @@ const styles = StyleSheet.create({
   sheetHandle: {
     width: 36,
     height: 4,
-    backgroundColor: '#333',
+    backgroundColor: t.borderStrong,
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 12,
@@ -668,14 +674,14 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#555',
+    color: t.textMuted,
     textAlign: 'center',
     letterSpacing: 1,
     paddingVertical: 16,
   },
   sheetDivider: {
     height: 1,
-    backgroundColor: '#1e1e1e',
+    backgroundColor: t.border,
   },
   sheetAction: {
     paddingVertical: 18,
@@ -684,30 +690,30 @@ const styles = StyleSheet.create({
   sheetActionText: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#fff',
+    color: t.text,
   },
   sheetGap: {
     height: 8,
-    backgroundColor: '#000',
+    backgroundColor: t.bg,
     borderRadius: 4,
     marginVertical: 8,
   },
   sheetCancel: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: t.surfaceAlt,
     borderRadius: 14,
   },
   sheetCancelText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#888',
+    color: t.textMuted,
   },
   destructive: {
-    color: '#f44336',
+    color: t.behind,
   },
 
   // Share route preview
   shareSheet: {
-    backgroundColor: '#0d0d0d',
+    backgroundColor: t.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
@@ -718,7 +724,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   shareCard: {
-    backgroundColor: '#000',
+    backgroundColor: t.bg,
     width: '100%',
     alignItems: 'center',
     paddingBottom: 20,
@@ -733,25 +739,25 @@ const styles = StyleSheet.create({
   shareRouteName: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#fff',
+    color: t.text,
     marginTop: 20,
     textAlign: 'center',
   },
   shareRouteMeta: {
     fontSize: 13,
-    color: '#555',
+    color: t.textMuted,
     marginTop: 6,
     letterSpacing: 0.5,
   },
   shareCardBrand: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#2a2a2a',
+    color: t.textFaint,
     letterSpacing: 3,
     marginTop: 20,
   },
   shareActionButton: {
-    backgroundColor: '#fff',
+    backgroundColor: t.accent,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -759,25 +765,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   shareActionDisabled: {
-    backgroundColor: '#222',
+    backgroundColor: t.surfaceAlt,
   },
   shareActionText: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#000',
+    color: t.accentText,
     letterSpacing: 2,
   },
 
   // Shared modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: t.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
   },
   modalBox: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: t.surface,
     borderRadius: 14,
     padding: 24,
     width: '100%',
@@ -785,23 +791,23 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#fff',
+    color: t.text,
     marginBottom: 8,
   },
   modalBody: {
     fontSize: 14,
-    color: '#888',
+    color: t.textMuted,
     marginBottom: 24,
     lineHeight: 20,
   },
   modalInput: {
-    backgroundColor: '#111',
+    backgroundColor: t.surfaceAlt,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#fff',
+    color: t.text,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: t.borderStrong,
     marginBottom: 20,
   },
   modalButtons: {
@@ -815,24 +821,24 @@ const styles = StyleSheet.create({
   },
   modalCancelText: {
     fontSize: 15,
-    color: '#888',
+    color: t.textMuted,
   },
   modalSave: {
-    backgroundColor: '#fff',
+    backgroundColor: t.accent,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 20,
   },
   modalSaveDisabled: {
-    backgroundColor: '#333',
+    backgroundColor: t.surfaceAlt,
   },
   modalSaveText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#000',
+    color: t.accentText,
   },
   modalDelete: {
-    backgroundColor: '#f44336',
+    backgroundColor: t.behind,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 20,

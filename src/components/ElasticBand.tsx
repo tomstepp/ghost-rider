@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { Theme, useTheme } from '../theme';
 
 // Max physical gap (meters) that maps to full bar separation
 const MAX_GAP_M = 500;
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export function ElasticBand({ userDistance, ghostDistance, totalDistance }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const total = totalDistance ?? 10000;
 
   // User position as 0–1 along the bar (bottom = 0, top = 1)
@@ -42,14 +45,14 @@ export function ElasticBand({ userDistance, ghostDistance, totalDistance }: Prop
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   track: {
     position: 'absolute',
     right: 12,
     top: 60,
     bottom: 60,
     width: 4,
-    backgroundColor: '#222222',
+    backgroundColor: t.border,
     borderRadius: 2,
   },
   userDot: {
@@ -58,7 +61,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#ffffff',
+    backgroundColor: t.text,
   },
   ghostDot: {
     position: 'absolute',
@@ -67,7 +70,7 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: '#ffffff',
+    borderColor: t.text,
     backgroundColor: 'transparent',
   },
 });

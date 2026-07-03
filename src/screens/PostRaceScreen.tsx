@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   Image,
   ScrollView,
@@ -17,6 +17,7 @@ import { RouteShape } from '../components/RouteShape';
 import { RouteMap, RouteMapHandle } from '../components/RouteMap';
 import { ElevationProfile } from '../components/ElevationProfile';
 import { calcElevationGain } from '../utils/routeGeometry';
+import { Theme, useTheme } from '../theme';
 import * as Haptics from 'expo-haptics';
 
 interface Props {
@@ -41,6 +42,8 @@ export function PostRaceScreen({ raceState, rideNodes, units, onSaveAsGhost, onD
   // captured by view-shot, so we snapshot the map separately and swap it in).
   const [shareMapUri, setShareMapUri] = useState<string | null>(null);
   const { width } = useWindowDimensions();
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const shareCardRef = useRef<View>(null);
   const routeMapRef = useRef<RouteMapHandle>(null);
 
@@ -87,7 +90,7 @@ export function PostRaceScreen({ raceState, rideNodes, units, onSaveAsGhost, onD
 
       {hasRoute && (
         <View style={styles.mapReview}>
-          <RouteMap ref={routeMapRef} nodes={rideNodes} height={vizWidth * 0.6} interactive routeColor="#fff" />
+          <RouteMap ref={routeMapRef} nodes={rideNodes} height={vizWidth * 0.6} interactive />
         </View>
       )}
 
@@ -177,10 +180,10 @@ export function PostRaceScreen({ raceState, rideNodes, units, onSaveAsGhost, onD
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: t.bg,
   },
   content: {
     paddingTop: 80,
@@ -191,12 +194,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 4,
     marginBottom: 24,
   },
   shareCard: {
-    backgroundColor: '#000',
+    backgroundColor: t.bg,
     width: '100%',
     alignItems: 'center',
     paddingBottom: 20,
@@ -221,8 +224,8 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     textAlign: 'center',
   },
-  deltaAhead: { color: '#4caf50' },
-  deltaBehind: { color: '#f44336' },
+  deltaAhead: { color: t.ahead },
+  deltaBehind: { color: t.behind },
   statsGrid: {
     gap: 16,
     marginBottom: 24,
@@ -236,23 +239,23 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
+    color: t.text,
   },
   statLabel: {
     fontSize: 10,
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 1.5,
     marginTop: 4,
   },
   shareCardBrand: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#2a2a2a',
+    color: t.textFaint,
     letterSpacing: 3,
   },
   shareButton: {
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: t.border,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -262,7 +265,7 @@ const styles = StyleSheet.create({
   shareButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#666',
+    color: t.textMuted,
     letterSpacing: 2,
   },
   saveSection: {
@@ -272,35 +275,35 @@ const styles = StyleSheet.create({
   saveLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#555',
+    color: t.textMuted,
     letterSpacing: 2,
     marginBottom: 12,
   },
   nameInput: {
-    backgroundColor: '#111',
+    backgroundColor: t.surface,
     borderRadius: 8,
     padding: 14,
     fontSize: 16,
-    color: '#fff',
+    color: t.text,
     marginBottom: 12,
   },
   saveButton: {
-    backgroundColor: '#fff',
+    backgroundColor: t.accent,
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',
   },
-  saveButtonDisabled: { backgroundColor: '#222' },
+  saveButtonDisabled: { backgroundColor: t.surfaceAlt },
   saveButtonText: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#000',
+    color: t.accentText,
     letterSpacing: 2,
   },
   discardButton: { paddingVertical: 16 },
   discardText: {
     fontSize: 13,
-    color: '#444',
+    color: t.textFaint,
     letterSpacing: 2,
   },
 });

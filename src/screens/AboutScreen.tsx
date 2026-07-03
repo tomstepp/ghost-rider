@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Constants from 'expo-constants';
+import { Theme, useTheme } from '../theme';
 
 const PRIVACY_POLICY_URL = 'https://docs.google.com/document/d/e/2PACX-1vRErAZb8d26NE11uWIk_JELmffpuku8g2auclEQbCsR0fj6oZh1DYM5BbFptNNQC-5tQ2iIPExDc0-4/pub';
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export function AboutScreen({ onBack, onResetOnboarding }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -41,17 +44,17 @@ export function AboutScreen({ onBack, onResetOnboarding }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: t.bg,
   },
   header: {
     paddingTop: 64,
     paddingHorizontal: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: t.border,
   },
   backButton: {
     marginBottom: 12,
@@ -59,12 +62,12 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 20,
-    color: '#888',
+    color: t.textMuted,
   },
   title: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#fff',
+    color: t.text,
     letterSpacing: 3,
   },
   iconRow: {
@@ -74,7 +77,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 32,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: t.border,
   },
   icon: {
     width: 64,
@@ -84,11 +87,11 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#fff',
+    color: t.text,
   },
   version: {
     fontSize: 14,
-    color: '#555',
+    color: t.textMuted,
     marginTop: 4,
   },
   section: {
@@ -101,15 +104,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: t.border,
   },
   rowLabel: {
     fontSize: 16,
-    color: '#fff',
+    color: t.text,
     fontWeight: '500',
   },
   rowChevron: {
     fontSize: 20,
-    color: '#555',
+    color: t.textMuted,
   },
 });

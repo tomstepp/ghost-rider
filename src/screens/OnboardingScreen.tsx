@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -11,24 +11,19 @@ import {
 } from 'react-native';
 import { RouteNode } from '../types';
 import { RouteShape } from '../components/RouteShape';
+import { Theme, useTheme } from '../theme';
 
 interface Props {
   onDone: () => void;
 }
 
-// HUD background tints, kept in sync with RaceHUDScreen so the color strip in
-// the intro matches the live screen exactly.
-const AHEAD_COLOR = '#032b13';
-const BEHIND_COLOR = '#360808';
-const EVEN_COLOR = '#000000';
-
-// A small hand-drawn loop used to preview the app's real route visual. Values
-// are relative — RouteShape normalizes them to fit. distance_from_start only
-// needs to increase monotonically for the markers to place correctly.
+// A small hand-drawn one-way route used to preview the app's real route visual
+// with start/finish markers. Values are relative — RouteShape normalizes them
+// to fit. distance_from_start only needs to increase monotonically.
 const SAMPLE_ROUTE: RouteNode[] = [
-  [-2.0, -1.0], [-1.0, -1.6], [0.2, -1.7], [1.3, -1.3], [2.0, -0.4],
-  [2.2, 0.7], [1.8, 1.7], [0.9, 2.3], [-0.3, 2.4], [-1.4, 2.0],
-  [-2.1, 1.1], [-2.3, 0.0], [-2.0, -1.0],
+  [-2.4, -1.4], [-1.6, -1.6], [-0.9, -1.2], [-0.5, -0.4], [-0.6, 0.4],
+  [-1.1, 1.0], [-0.6, 1.6], [0.3, 1.8], [1.1, 1.5], [1.6, 0.8],
+  [1.6, -0.1], [2.0, -0.9], [2.5, -1.4],
 ].map(([lon, lat], i) => ({
   latitude: lat,
   longitude: lon,
@@ -36,7 +31,6 @@ const SAMPLE_ROUTE: RouteNode[] = [
   timestamp: i * 20000,
   distance_from_start: i * 130,
 }));
-const SAMPLE_TOTAL = SAMPLE_ROUTE[SAMPLE_ROUTE.length - 1].distance_from_start;
 
 interface Step {
   emoji: string;
@@ -82,17 +76,19 @@ const STEPS: Step[] = [
 ];
 
 function ColorStrip() {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={styles.colorStrip}>
-      <View style={[styles.hudCard, { backgroundColor: AHEAD_COLOR }]}>
+      <View style={[styles.hudCard, { backgroundColor: theme.aheadBg }]}>
         <Text style={styles.hudDelta}>-4.2s</Text>
         <Text style={styles.hudLabel}>AHEAD</Text>
       </View>
-      <View style={[styles.hudCard, styles.hudEven, { backgroundColor: EVEN_COLOR }]}>
+      <View style={[styles.hudCard, styles.hudEven, { backgroundColor: theme.evenBg }]}>
         <Text style={styles.hudDelta}>0.0s</Text>
         <Text style={styles.hudLabel}>EVEN</Text>
       </View>
-      <View style={[styles.hudCard, { backgroundColor: BEHIND_COLOR }]}>
+      <View style={[styles.hudCard, { backgroundColor: theme.behindBg }]}>
         <Text style={styles.hudDelta}>+2.1s</Text>
         <Text style={styles.hudLabel}>BEHIND</Text>
       </View>
@@ -101,6 +97,8 @@ function ColorStrip() {
 }
 
 function StepContent({ step, previewWidth }: { step: Step; previewWidth: number }) {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={styles.content}>
       <Text style={styles.emoji}>{step.emoji}</Text>
@@ -113,10 +111,9 @@ function StepContent({ step, previewWidth }: { step: Step; previewWidth: number 
             nodes={SAMPLE_ROUTE}
             width={previewWidth}
             height={120}
-            riderDistanceM={SAMPLE_TOTAL * 0.62}
-            ghostDistanceM={SAMPLE_TOTAL * 0.46}
-            strokeColor="#333"
+            strokeColor={theme.routeStroke}
             padding={12}
+            showEndpoints
           />
         </View>
       )}
@@ -140,6 +137,8 @@ function StepContent({ step, previewWidth }: { step: Step; previewWidth: number 
 }
 
 export function OnboardingScreen({ onDone }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [step, setStep] = useState(0);
   const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
@@ -206,10 +205,10 @@ export function OnboardingScreen({ onDone }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: t.bg,
     paddingTop: 64,
     paddingBottom: 48,
   },
@@ -227,7 +226,7 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: 16,
-    color: '#444',
+    color: t.textFaint,
   },
   pager: {
     flex: 1,
@@ -248,7 +247,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#fff',
+    color: t.text,
     textAlign: 'center',
     letterSpacing: 0.5,
     marginBottom: 20,
@@ -258,7 +257,7 @@ const styles = StyleSheet.create({
   },
   body: {
     fontSize: 16,
-    color: '#666',
+    color: t.textMuted,
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -278,7 +277,7 @@ const styles = StyleSheet.create({
   },
   optionBadge: {
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: t.borderStrong,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -288,13 +287,13 @@ const styles = StyleSheet.create({
   optionBadgeText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#888',
+    color: t.textMuted,
     letterSpacing: 1.5,
   },
   optionText: {
     flex: 1,
     fontSize: 14,
-    color: '#aaa',
+    color: t.textSecondary,
     lineHeight: 20,
   },
   colorStrip: {
@@ -311,17 +310,17 @@ const styles = StyleSheet.create({
   },
   hudEven: {
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: t.border,
   },
   hudDelta: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#fff',
+    color: t.text,
   },
   hudLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#888',
+    color: t.textMuted,
     letterSpacing: 1.5,
     marginTop: 4,
   },
@@ -338,14 +337,14 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#333',
+    backgroundColor: t.borderStrong,
   },
   dotActive: {
-    backgroundColor: '#fff',
+    backgroundColor: t.text,
     width: 20,
   },
   button: {
-    backgroundColor: '#fff',
+    backgroundColor: t.accent,
     borderRadius: 14,
     paddingVertical: 18,
     alignSelf: 'stretch',
@@ -354,7 +353,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#000',
+    color: t.accentText,
     letterSpacing: 2,
   },
 });

@@ -3,6 +3,7 @@ import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 import { RouteNode } from '../types';
 import { MarkerSettings } from '../screens/SettingsScreen';
 import { elevationXAtDistance, nodesToElevationPath } from '../utils/routeGeometry';
+import { useTheme } from '../theme';
 
 const PADDING = 6;
 const EMOJI_SIZE = 14;
@@ -62,6 +63,7 @@ export function ElevationProfile({
   riderMarker = DEFAULT_RIDER,
   ghostMarker = DEFAULT_GHOST,
 }: Props) {
+  const theme = useTheme();
   const path = useMemo(
     () => nodesToElevationPath(nodes, width, height, PADDING),
     [nodes, width, height],
@@ -80,7 +82,7 @@ export function ElevationProfile({
 
   return (
     <Svg width={width} height={height}>
-      <Path d={path} fill="#1a1a1a" stroke="#333" strokeWidth={1.5} />
+      <Path d={path} fill={theme.surfaceAlt} stroke={theme.borderStrong} strokeWidth={1.5} />
       {ghostX != null && <ElevationMarker x={ghostX} height={height} marker={ghostMarker} dashed />}
       {riderX != null && <ElevationMarker x={riderX} height={height} marker={riderMarker} />}
     </Svg>
